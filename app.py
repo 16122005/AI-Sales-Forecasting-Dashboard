@@ -5,85 +5,16 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error
 import datetime
-import time
-
-st.set_page_config(layout="wide")
+import numpy as np
 
 # =========================
-# THEME TOGGLE
+# PAGE CONFIG
 # =========================
-theme = st.sidebar.radio("Theme", ["Dark", "Light"])
-
-if theme == "Dark":
-    bg = "#020617"
-    text = "white"
-    card_bg = "rgba(15,23,42,0.7)"
-else:
-    bg = "#f8fafc"
-    text = "black"
-    card_bg = "white"
-
-# =========================
-# 🌌 ULTRA CSS
-# =========================
-st.markdown(f"""
-<style>
-
-/* Animated Background */
-.stApp {{
-    background: linear-gradient(-45deg, #020617, #0f172a, #020617);
-    background-size: 400% 400%;
-    animation: gradient 10s ease infinite;
-    color: {text};
-}}
-
-@keyframes gradient {{
-    0% {{background-position: 0%}}
-    50% {{background-position: 100%}}
-    100% {{background-position: 0%}}
-}}
-
-/* Floating animation */
-@keyframes float {{
-    0% {{transform: translateY(0px);}}
-    50% {{transform: translateY(-10px);}}
-    100% {{transform: translateY(0px);}}
-}}
-
-/* KPI Cards */
-.kpi {{
-    padding: 25px;
-    border-radius: 20px;
-    text-align: center;
-    background: {card_bg};
-    backdrop-filter: blur(10px);
-    border: 1px solid #9333ea;
-    box-shadow: 0 0 20px #9333ea;
-    animation: float 3s ease-in-out infinite;
-    transition: 0.3s;
-}}
-.kpi:hover {{
-    box-shadow: 0 0 40px #38bdf8;
-    transform: scale(1.05);
-}}
-
-/* Chart Cards */
-.card {{
-    background: {card_bg};
-    padding: 15px;
-    border-radius: 15px;
-    border: 1px solid #334155;
-    box-shadow: 0 0 15px #0ea5e9;
-    margin-bottom: 15px;
-    transition: 0.3s;
-}}
-.card:hover {{
-    box-shadow: 0 0 30px #38bdf8;
-    transform: scale(1.02);
-}}
-
-</style>
-""", unsafe_allow_html=True)
+st.set_page_config(
+    page_title="AI Sales Forecast Dashboard",
+    page_icon="🚀",
+    layout="wide"
+)
 
 # =========================
 # LOGIN
@@ -94,7 +25,7 @@ def login():
     p = st.text_input("Password", type="password")
 
     if st.button("Login"):
-        if u == "user" and p == "12345":
+        if u == "admin" and p == "123456":
             st.session_state.logged_in = True
             st.session_state.user = u
             st.rerun()
@@ -114,11 +45,42 @@ if st.sidebar.button("🚪 Logout"):
     st.rerun()
 
 # =========================
+# THEME
+# =========================
+theme = st.sidebar.radio("Theme", ["Dark", "Light"])
+
+text = "white" if theme == "Dark" else "black"
+card_bg = "rgba(15,23,42,0.7)" if theme == "Dark" else "white"
+
+# =========================
+# CSS
+# =========================
+st.markdown(f"""
+<style>
+.stApp {{
+    background: linear-gradient(-45deg, #020617, #0f172a, #020617);
+    background-size: 400% 400%;
+    animation: gradient 10s ease infinite;
+    color: {text};
+}}
+
+.kpi {{
+    padding: 20px;
+    border-radius: 20px;
+    text-align: center;
+    background: {card_bg};
+    box-shadow: 0 0 20px #9333ea;
+}}
+
+</style>
+""", unsafe_allow_html=True)
+
+# =========================
 # LOAD DATA
 # =========================
 @st.cache_data
 def load():
-    df = pd.read_csv("Superstore.csv", encoding="latin1")
+    df = pd.read_csv("data/Superstore.csv", encoding="latin1")
     df['Order Date'] = pd.to_datetime(df['Order Date'])
     return df
 
@@ -132,17 +94,7 @@ st.sidebar.success(f"👤 {st.session_state.user}")
 region = st.sidebar.multiselect("Region", df['Region'].unique(), df['Region'].unique())
 category = st.sidebar.multiselect("Category", df['Category'].unique(), df['Category'].unique())
 
-date_range = st.sidebar.date_input(
-    "Date Range",
-    [df['Order Date'].min(), df['Order Date'].max()]
-)
-
-df = df[
-    (df['Region'].isin(region)) &
-    (df['Category'].isin(category)) &
-    (df['Order Date'] >= pd.to_datetime(date_range[0])) &
-    (df['Order Date'] <= pd.to_datetime(date_range[1]))
-]
+df = df[(df['Region'].isin(region)) & (df['Category'].isin(category))]
 
 # =========================
 # HEADER
@@ -151,13 +103,8 @@ st.title("🚀 AI SALES FORECASTING DASHBOARD")
 st.caption(f"Updated: {datetime.datetime.now()}")
 
 # =========================
-# KPI (ANIMATED COUNTER)
+# KPI
 # =========================
-def animate_value(value, suffix=""):
-    for i in range(0, 101, 10):
-        st.empty().markdown(f"### {value * i / 100:.2f}{suffix}")
-        time.sleep(0.01)
-
 c1, c2, c3 = st.columns(3)
 
 c1.markdown(f'<div class="kpi"><h2>{df["Sales"].sum()/1e6:.2f}M</h2><p>Sales</p></div>', unsafe_allow_html=True)
@@ -165,83 +112,76 @@ c2.markdown(f'<div class="kpi"><h2>{df["Quantity"].sum()/1000:.0f}K</h2><p>Quant
 c3.markdown(f'<div class="kpi"><h2>{df["Profit"].sum()/1000:.2f}K</h2><p>Profit</p></div>', unsafe_allow_html=True)
 
 # =========================
-# CHART THEME FIX
+# CHARTS
 # =========================
-def chart_theme(fig):
-    fig.update_layout(
-        font=dict(color=text),
-        plot_bgcolor="rgba(0,0,0,0)",
-        paper_bgcolor="rgba(0,0,0,0)",
-        margin=dict(l=20, r=20, t=40, b=20)
-    )
-    return fig
+st.subheader("📊 Analytics")
 
-# =========================
-# MAIN CHARTS
-# =========================
-col1, col2, col3, col4 = st.columns(4)
+col1, col2 = st.columns(2)
 
 with col1:
-    fig = chart_theme(px.pie(df, names='Segment', values='Sales', hole=0.5))
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(px.pie(df, names='Segment', values='Sales', hole=0.5), use_container_width=True)
 
 with col2:
-    fig = chart_theme(px.bar(df, x='Category', y='Sales', color='Category'))
-    st.plotly_chart(fig, use_container_width=True)
-
-with col3:
-    monthly = df.groupby(df['Order Date'].dt.month)['Sales'].sum().reset_index()
-    monthly.columns = ['Month','Sales']
-    fig = chart_theme(px.line(monthly, x='Month', y='Sales'))
-    st.plotly_chart(fig, use_container_width=True)
-
-with col4:
-    fig = chart_theme(px.scatter_geo(df, locations="State", locationmode="USA-states",
-                                     size="Sales", scope="usa"))
-    st.plotly_chart(fig, use_container_width=True)
+    st.plotly_chart(px.bar(df, x='Category', y='Sales', color='Category'), use_container_width=True)
 
 # =========================
-# EXTRA CHARTS
+# ML MODEL
 # =========================
-st.subheader("📊 Advanced Analytics")
+@st.cache_resource
+def train_model(data):
+    df2 = data.groupby('Order Date')['Sales'].sum().reset_index()
+    df2['lag1'] = df2['Sales'].shift(1)
+    df2['lag2'] = df2['Sales'].shift(2)
+    df2 = df2.dropna()
 
-c5, c6, c7 = st.columns(3)
+    X = df2[['lag1', 'lag2']]
+    y = df2['Sales']
 
-with c5:
-    st.plotly_chart(chart_theme(px.histogram(df, x="Sales")), use_container_width=True)
+    model = RandomForestRegressor(n_estimators=100)
+    model.fit(X, y)
 
-with c6:
-    st.plotly_chart(chart_theme(px.box(df, y="Sales")), use_container_width=True)
+    return model, df2
 
-with c7:
-    st.plotly_chart(chart_theme(px.scatter(df, x="Sales", y="Profit",
-                                           size="Quantity", color="Category")),
-                    use_container_width=True)
+model, df2 = train_model(df)
+
+df2['pred'] = model.predict(df2[['lag1', 'lag2']])
 
 # =========================
 # FORECAST
 # =========================
 st.subheader("🔮 Forecast")
 
-df2 = df.groupby('Order Date')['Sales'].sum().reset_index()
-df2['lag'] = df2['Sales'].shift(1)
-df2 = df2.dropna()
+fig = px.line(df2, x='Order Date', y=['Sales', 'pred'])
 
-model = RandomForestRegressor()
-model.fit(df2[['lag']], df2['Sales'])
+# Confidence band
+df2['upper'] = df2['pred'] * 1.1
+df2['lower'] = df2['pred'] * 0.9
 
-df2['pred'] = model.predict(df2[['lag']])
+fig.add_scatter(x=df2['Order Date'], y=df2['upper'], mode='lines', name='Upper Bound')
+fig.add_scatter(x=df2['Order Date'], y=df2['lower'], mode='lines', name='Lower Bound')
 
-st.plotly_chart(chart_theme(px.line(df2, x='Order Date', y=['Sales','pred'])))
+st.plotly_chart(fig, use_container_width=True)
+
+# =========================
+# FEATURE IMPORTANCE
+# =========================
+st.subheader("📊 Feature Importance")
+
+importance = pd.DataFrame({
+    "Feature": ['lag1', 'lag2'],
+    "Importance": model.feature_importances_
+})
+
+st.bar_chart(importance.set_index("Feature"))
 
 # =========================
 # MODEL COMPARISON
 # =========================
 lr = LinearRegression()
-lr.fit(df2[['lag']], df2['Sales'])
+lr.fit(df2[['lag1', 'lag2']], df2['Sales'])
 
-rf_mae = mean_absolute_error(df2['Sales'], model.predict(df2[['lag']]))
-lr_mae = mean_absolute_error(df2['Sales'], lr.predict(df2[['lag']]))
+rf_mae = mean_absolute_error(df2['Sales'], model.predict(df2[['lag1', 'lag2']]))
+lr_mae = mean_absolute_error(df2['Sales'], lr.predict(df2[['lag1', 'lag2']]))
 
 st.subheader("🤖 Model Comparison")
 
@@ -250,19 +190,44 @@ c1.metric("Random Forest MAE", f"{rf_mae:.2f}")
 c2.metric("Linear Regression MAE", f"{lr_mae:.2f}")
 
 # =========================
+# FUTURE FORECAST
+# =========================
+st.subheader("📅 Future Prediction")
+
+days = st.slider("Days", 1, 30, 7)
+
+last = df2.iloc[-1]
+future = []
+current = last.copy()
+
+for i in range(days):
+    pred = model.predict([[current['lag1'], current['lag2']]])[0]
+    future.append(pred)
+    current['lag2'] = current['lag1']
+    current['lag1'] = pred
+
+future_df = pd.DataFrame({"Day": range(1, days+1), "Sales": future})
+st.line_chart(future_df.set_index("Day"))
+
+# =========================
 # AI INSIGHTS
 # =========================
-st.subheader("🧠 AI Recommendations")
+st.subheader("🧠 AI Insights")
 
-if df2['Sales'].iloc[-1] > df['Sales'].mean():
+if df2['Sales'].iloc[-1] > df2['Sales'].mean():
     st.success("📈 Sales increasing → Increase inventory")
 else:
     st.warning("📉 Sales dropping → Offer discounts")
 
 # =========================
+# DATA PREVIEW (NEW)
+# =========================
+with st.expander("📋 View Data"):
+    st.dataframe(df.head())
+
+# =========================
 # DOWNLOAD
 # =========================
-csv = df.to_csv(index=False).encode('utf-8')
-st.download_button("📥 Download Report", csv, "report.csv")
+st.download_button("📥 Download Report", df.to_csv(index=False), "report.csv")
 
-st.success("🔥  DASHBOARD READY")
+st.success("🔥 INDUSTRY-LEVEL DASHBOARD READY")
