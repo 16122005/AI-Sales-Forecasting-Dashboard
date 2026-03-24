@@ -118,7 +118,7 @@ if st.sidebar.button("🚪 Logout"):
 # =========================
 @st.cache_data
 def load():
-    df = pd.read_csv("data/Superstore.csv", encoding="latin1")
+    df = pd.read_csv("Superstore.csv", encoding="latin1")
     df['Order Date'] = pd.to_datetime(df['Order Date'])
     return df
 
