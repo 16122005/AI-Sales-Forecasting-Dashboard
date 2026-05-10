@@ -25,7 +25,7 @@ def login():
     p = st.text_input("Password", type="password")
 
     if st.button("Login"):
-        if u == "admin" and p == "123456":
+        if u.strip() == "kusuma" and p.strip() == "1234":
             st.session_state.logged_in = True
             st.session_state.user = u
             st.rerun()
